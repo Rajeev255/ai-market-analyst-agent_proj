@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Project-specific secrets/cache
+.search_cache/
+
+# Ignore your local key file if you used one instead of env vars
+# If your keys were defined directly in a Python file, DO NOT commit that file!
