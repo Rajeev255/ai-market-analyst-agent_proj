@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stratosphere Market Analysis Report</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
+        h1 { color: #34495e; border-bottom: 2px solid #34495e; padding-bottom: 5px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        pre { background: #ecf0f1; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+        .query-box { background: #f2f2f2; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .sources ol { padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Stratosphere Market Analyst: Client Brief</h1>
+
+    <div class="query-box">
+        <strong>Input Query:</strong> {{ query }}<br>
+        <strong>Search Status:</strong> {{ "Active" if search_used else "Disabled (--no-search)" }}
+    </div>
+
+    {% if analysis %}
+        {% set lines = analysis.split('\n') %}
+
+        {% for line in lines %}
+            {% if loop.index == 1 %}
+                <h2>{{ line | replace("1) ", "") }}</h2>
+            {% elif loop.index == 2 %}
+                <p>— {{ line | replace("2) TL;DR", "TL;DR") | safe }}</p>
+            {% elif loop.index == 3 %}
+                <h2>{{ line | replace("2) ", "") }}</h2>
+            {% elif loop.index >= 4 and line.startswith('*') %}
+                <ul><li>{{ line | replace('*', "") | safe }}</li></ul>
+            {% elif line.startswith('3)') %}
+                 <h2>{{ line | replace("3) ", "") }}</h2>
+            {% elif loop.index >= 7 and loop.index <= lines|length -1 %}
+                 <p>{{ line | safe }}</p>
+            {% endif %}
+        {% endfor %}
+
+    {% else %}
+        <p>Analysis failed or returned no text. Check the Render logs for errors.</p>
+    {% endif %}
+
+    <div class="sources">
+        <h2>Sources</h2>
+        <ol>
+        {# We split the raw text to try and format the source links #}
+        {% for line in lines %}
+            {% if line.startswith('1. ') or line.startswith('2. ') or line.startswith('3. ') or line.startswith('4. ') %}
+                <li>{{ line | safe }}</li>
+            {% endif %}
+        {% endfor %}
+        </ol>
+    </div>
+
+</body>
+</html>
