@@ -12,6 +12,11 @@ try:
 except ValueError as e:
     AGENT = None
     print(f"Agent initialization failed: {e}")
+    
+    # NEW: The root path now serves the input form
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
 
 # Change the output to HTML
 @app.route('/analyze', methods=['GET'])
@@ -20,7 +25,8 @@ def analyze():
         # If agent failed initialization, still return an error, possibly in JSON or simple HTML
         return f"<h1>Error: Agent not initialized. Check server environment variables.</h1>", 500
         
-    query = request.args.get('q', 'Ghost Kitchen Market US Strategy') # Use a default query
+    query = request.args.get('q', 'Ghost Kitchen Market US Strategy')
+    search_used = request.args.get('no-search', 'false').lower() not in ('true', 't', '1') # Use a default query
     # The JSON output you were getting contained the full analysis string.
     
     # We must ensure all string formatting that was handled by jsonify 
@@ -35,7 +41,7 @@ def analyze():
     return render_template(
         'analyze.html',
         query=query,
-        search_used=True, # Update based on your actual logic
+        search_used=search_used, 
         analysis=analysis_output
     )
 
