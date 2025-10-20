@@ -86,7 +86,7 @@ class GeminiAgent:
             lines.append(f"[{i}] {title}\nSnippet: {snippet}\nURL: {link}\n")
         return "\n".join(lines)
 
-    def _call_gemini(self, user_message: str, temperature: float = 0.1, max_tokens: int = 1024) -> str:
+    def _call_gemini(self, user_message: str, temperature: float = 0.1, max_tokens: int = 4048) -> str:
         try:
             model = genai.GenerativeModel(model_name=self.model_name)
             response = model.generate_content(
@@ -163,10 +163,10 @@ Primary Directives (Strict Compliance Required):
 3.  **Clarity:** If sources are insufficient to complete a section (e.g., SWOT), state this explicitly, and provide the analysis based on general knowledge, marking the ungrounded insight with **[UNGROUNDED]**.
 
 Output Format (Strict Adherence Required):
-1) TL;DR (1-2 lines summarizing the core strategic takeaway.)
+1) **Executive Summary** (1-3 lines summarizing the core strategic takeaway.)
 2) Key Facts (Bullet list of 3 essential facts, each ending with source index: [1].)
-3) SWOT (Strengths / Weaknesses / Opportunities / Threats — 1 strategic, concise bullet point for each category.)
-4) Top 2 Strategic Recommendations (Each recommendation must include: Recommendation, Rationale, and Immediate Next Step.)
+3) SWOT (Strengths / Weaknesses / Opportunities / Threats — 2 strategic, concise bullet point for each category.)
+4) Top 3 Strategic Recommendations (Each recommendation must include: Recommendation, Rationale, and Immediate Next Step.)
 5) Sources (Numbered list: Title — URL)
 
 Tone: Highly Professional, Concise, and Insightful.
