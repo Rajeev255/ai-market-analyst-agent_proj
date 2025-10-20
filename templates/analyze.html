@@ -16,8 +16,8 @@
         
         /* EXECUTIVE SUMMARY */
         .exec-summary { 
-            background: #e6fff1; /* Light green/teal background */
-            color: #006400; /* Dark green text */
+            background: #e6fff1; 
+            color: #006400;
             padding: 20px; 
             border-radius: 6px; 
             margin-bottom: 30px; 
@@ -27,25 +27,24 @@
             border: 1px solid #d4edda;
         }
 
-        /* LISTS */
-        .key-facts ul, .sources ol, .swot-details ul, .rec-list ul { list-style-type: disc; padding-left: 25px; margin-bottom: 15px; }
-        .sources ol { list-style-type: decimal; }
-        
-        /* SWOT/RECOMMENDATIONS */
-        .swot-details, .rec-list { margin-bottom: 40px; }
-        .swot-details ul { margin-bottom: 20px; }
-        .rec-item { 
-            border: 1px solid #f39c12; /* Orange border */
+        /* TEXT OUTPUT CONTAINER (ROBUST) */
+        .analysis-output { 
+            background: #f2f2f2; 
+            padding: 20px; 
             border-radius: 6px; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-            background-color: #fff9ed; /* Very light yellow background */
+            white-space: pre-wrap; /* Maintains line breaks from the agent's output */
+            text-align: left;
+            margin-top: 20px;
         }
-        .rec-item strong { display: block; color: #e67e22; margin-bottom: 5px; }
 
-        /* KEYWORD STYLING */
-        /* Highlights the ungrounded warnings */
-        .ungrounded { background-color: #ffe0e0; color: #cc0000; padding: 2px 4px; border-radius: 3px; font-weight: normal; }
+        /* KEYWORD STYLING for the console output look */
+        .analysis-output code { 
+            display: block; 
+            font-family: monospace; 
+            line-height: 1.2;
+            padding: 10px 0;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -57,68 +56,17 @@
     </div>
 
     {% if analysis %}
-        {% set lines = analysis.split('\n') %}
-        {% set current_section = '' %}
         
-        {# Loop through every single line of the agent's raw output #}
-        {% for line in lines %}
-            {% set trimmed_line = line.strip() %}
-            {% set clean_line = trimmed_line | replace('*', '') %}
-            
-            {# --- SECTION HEADER DETECTION (Most Robust Part) --- #}
-            {% if trimmed_line.startswith('1) **Executive Summary') %}
-                {% set current_section = 'summary' %}
-            {% elif trimmed_line.startswith('2) Key Facts') %}
-                {% set current_section = 'keyfacts' %}
-                <h2>Key Facts</h2>
-                <div class="key-facts"><ul>
-            {% elif trimmed_line.startswith('3) SWOT') %}
-                {% set current_section = 'swot' %}
-                </ul></div> <h2>SWOT Analysis</h2>
-                <div class="swot-details">
-            {% elif trimmed_line.startswith('4) Top') %}
-                {% set current_section = 'recommendations' %}
-                <h2>Strategic Recommendations</h2>
-                <div class="rec-list">
-            {% elif trimmed_line.startswith('5) Sources') %}
-                {% set current_section = 'sources' %}
-                </div> <h2>Sources</h2>
-                <div class="sources"><ol>
-
-            {# --- CONTENT RENDERING LOGIC --- #}
-            {% else %}
-                {% if current_section == 'summary' and trimmed_line %}
-                    {# This handles the one or two lines following the header #}
-                    <div class="exec-summary">{{ trimmed_line | safe }}</div>
-                {% elif current_section == 'keyfacts' and trimmed_line.startswith('*') %}
-                    <li>{{ clean_line | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
-                {% elif current_section == 'swot' and trimmed_line %}
-                    {# Looks for bold/italics markers to distinguish S/W/O/T headers #}
-                    {% if '**' in trimmed_line or '*' in trimmed_line %} 
-                        {% if loop.index > 1 and trimmed_line.startswith('*') %}</ul></div>{% endif %}
-                        <div class="swot-section"><h3>{{ trimmed_line | replace('*', '') | replace(':', '') | safe }}</h3><ul>
-                    {% elif trimmed_line.startswith('*') %}
-                        <li>{{ clean_line | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
-                    {% endif %}
-                {% elif current_section == 'recommendations' and trimmed_line %}
-                    {# Detects Recommendation header and sub-bullets based on keywords #}
-                    {% if trimmed_line.startswith('* Recommendation:') %}
-                        {% if loop.index > 1 %}</div>{% endif %}
-                        <div class="rec-item"><strong>{{ trimmed_line | replace('* Recommendation:', 'Recommendation:') | safe }}</strong><ul>
-                    {% elif trimmed_line.startswith('* Rationale:') or trimmed_line.startswith('* Immediate Next Step:') %}
-                        <li>{{ trimmed_line | replace('*', '') | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
-                    {% endif %}
-                {% elif current_section == 'sources' and trimmed_line %}
-                    <li>{{ trimmed_line | safe }}</li>
-                {% endif %}
-            {% endif %}
-        {% endfor %}
+        {# Display the entire cleaned analysis string inside a safe, pre-formatted code block #}
+        {# The 'safe' filter is CRITICAL: it prevents Jinja from escaping HTML entities like <, >, 
+           but since we stripped ** it should now render without breaking the page layout. #}
+        <div class="analysis-output">
+            <h2>Raw Agent Analysis (Structured)</h2>
+            <code>{{ analysis | safe }}</code>
+        </div>
         
-        {# Final Closing Tags for the last section #}
-        {% if current_section == 'sources' %}</ol></div>{% endif %}
-
     {% else %}
-        <p>Analysis failed or returned no text. Please check the Render logs for an API error.</p>
+        <p>Analysis failed or returned no content. Please check the Render logs for API errors.</p>
     {% endif %}
 </body>
 </html>

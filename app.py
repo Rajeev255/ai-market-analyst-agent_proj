@@ -22,22 +22,27 @@ def index():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     if not AGENT:
-        # If agent failed initialization, still return an error, possibly in JSON or simple HTML
         return f"<h1>Error: Agent not initialized. Check server environment variables.</h1>", 500
         
     query = request.args.get('q', 'Ghost Kitchen Market US Strategy')
-    search_used = request.args.get('no-search', 'false').lower() not in ('true', 't', '1') # Use a default query
-    # The JSON output you were getting contained the full analysis string.
+    # Use the 'no-search' parameter to correctly determine if search was used
+    search_used = request.args.get('no-search', 'false').lower() not in ('true', 't', '1') 
     
-    # We must ensure all string formatting that was handled by jsonify 
-    # is manually done so the HTML template can parse it.
-    
-    # If using the simplified prompt (TL;DR, Key Facts, Sources), the analysis
-    # is returned as a single, multi-line string.
-    
-    analysis_output = AGENT.ask_market(query, use_search=True) # Always search, or use logic from prompt
+    analysis_output = AGENT.ask_market(query, use_search=search_used) 
 
-    # Pass the variables to the HTML template
+    # --- NEW: String Cleaning for HTML Safety ---
+    # 1. Remove all double asterisks (markdown bold) to prevent rendering issues.
+    #    The HTML styling will be handled by the template's CSS/structure.
+    analysis_output = analysis_output.replace('**', '')
+    
+    # 2. Add an extra newline after each section header to aid visual parsing in Jinja
+    analysis_output = analysis_output.replace('1) Executive Summary', '1) Executive Summary\n')
+    analysis_output = analysis_output.replace('2) Key Facts', '2) Key Facts\n')
+    analysis_output = analysis_output.replace('3) SWOT', '3) SWOT\n')
+    analysis_output = analysis_output.replace('4) Top 3 Strategic Recommendations', '4) Top 3 Strategic Recommendations\n')
+    analysis_output = analysis_output.replace('5) Sources', '5) Sources\n')
+    # -------------------------------------------
+
     return render_template(
         'analyze.html',
         query=query,
