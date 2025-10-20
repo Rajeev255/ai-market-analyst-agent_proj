@@ -25,23 +25,20 @@ def analyze():
         return f"<h1>Error: Agent not initialized. Check server environment variables.</h1>", 500
         
     query = request.args.get('q', 'Ghost Kitchen Market US Strategy')
-    # Use the 'no-search' parameter to correctly determine if search was used
     search_used = request.args.get('no-search', 'false').lower() not in ('true', 't', '1') 
     
     analysis_output = AGENT.ask_market(query, use_search=search_used) 
 
-    # --- NEW: String Cleaning for HTML Safety ---
-    # 1. Remove all double asterisks (markdown bold) to prevent rendering issues.
-    #    The HTML styling will be handled by the template's CSS/structure.
-    analysis_output = analysis_output.replace('**', '')
+    # --- FINAL MAX-SAFETY CLEANING ---
+    # 1. Remove ALL Markdown characters that could cause HTML/Jinja syntax issues.
+    analysis_output = analysis_output.replace('**', '').replace('*', '')
     
-    # 2. Add an extra newline after each section header to aid visual parsing in Jinja
-    analysis_output = analysis_output.replace('1) Executive Summary', '1) Executive Summary\n')
-    analysis_output = analysis_output.replace('2) Key Facts', '2) Key Facts\n')
-    analysis_output = analysis_output.replace('3) SWOT', '3) SWOT\n')
-    analysis_output = analysis_output.replace('4) Top 3 Strategic Recommendations', '4) Top 3 Strategic Recommendations\n')
-    analysis_output = analysis_output.replace('5) Sources', '5) Sources\n')
-    # -------------------------------------------
+    # 2. Replace the HTML-unsafe single quote (') with a safe quote (or remove it)
+    analysis_output = analysis_output.replace("’", "'") 
+    
+    # 3. Aggressively ensure multiple newlines don't confuse the parser
+    analysis_output = analysis_output.replace('\n\n', '\n')
+    # -----------------------------------
 
     return render_template(
         'analyze.html',
