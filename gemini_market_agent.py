@@ -12,7 +12,7 @@ import google.generativeai as genai
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 GOOGLE_CX = os.environ.get("GOOGLE_CX", "")
-SEARCH_RESULTS = 2  # number of search results to fetch
+SEARCH_RESULTS = 6  # number of search results to fetch
 
 # ---------- Simple file-cache helper to avoid repeated searches during development ----------
 CACHE_DIR = ".search_cache"

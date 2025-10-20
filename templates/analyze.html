@@ -9,35 +9,43 @@
         body { font-family: 'Arial', sans-serif; max-width: 900px; margin: 40px auto; line-height: 1.6; color: #333; background-color: #fcfcfc; }
         h1 { color: #1a1a1a; border-bottom: 3px solid #2980b9; padding-bottom: 8px; margin-bottom: 30px; font-size: 24px; }
         h2 { color: #2980b9; margin-top: 30px; font-size: 20px; }
-        
+        h3 { color: #34495e; font-size: 16px; margin-top: 15px; margin-bottom: 5px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+
         /* INPUT BOX */
         .query-box { background: #eef4f9; padding: 15px; border-radius: 6px; margin-bottom: 30px; border-left: 5px solid #3498db; font-size: 14px; }
-        .query-box strong { color: #2c3e50; }
         
         /* EXECUTIVE SUMMARY */
         .exec-summary { 
-            background: #d4edda; 
-            color: #155724; 
+            background: #e6fff1; /* Light green/teal background */
+            color: #006400; /* Dark green text */
             padding: 20px; 
             border-radius: 6px; 
             margin-bottom: 30px; 
             font-size: 16px; 
             font-weight: bold; 
             line-height: 1.5;
+            border: 1px solid #d4edda;
         }
 
-        /* KEY FACTS & SOURCES */
-        .key-facts ul, .sources ol { list-style-type: disc; padding-left: 25px; margin-bottom: 20px; }
-        .key-facts ul li, .sources ol li { margin-bottom: 5px; }
-
-        /* SWOT/RECOMMENDATIONS CONTAINER */
-        .strategic-analysis { margin-top: 30px; }
-        .swot-section, .recommendation-section { border: 1px solid #ddd; border-radius: 6px; padding: 15px; margin-bottom: 20px; }
-        .swot-section h3 { color: #34495e; font-size: 16px; margin-top: 0; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+        /* LISTS */
+        .key-facts ul, .sources ol, .swot-details ul, .rec-list ul { list-style-type: disc; padding-left: 25px; margin-bottom: 15px; }
+        .sources ol { list-style-type: decimal; }
         
-        /* RECOMMENDATION SPECIFIC STYLING */
-        .rec-item { border-left: 3px solid #f39c12; padding-left: 10px; margin-bottom: 15px; }
+        /* SWOT/RECOMMENDATIONS */
+        .swot-details, .rec-list { margin-bottom: 40px; }
+        .swot-details ul { margin-bottom: 20px; }
+        .rec-item { 
+            border: 1px solid #f39c12; /* Orange border */
+            border-radius: 6px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            background-color: #fff9ed; /* Very light yellow background */
+        }
         .rec-item strong { display: block; color: #e67e22; margin-bottom: 5px; }
+
+        /* KEYWORD STYLING */
+        /* Highlights the ungrounded warnings */
+        .ungrounded { background-color: #ffe0e0; color: #cc0000; padding: 2px 4px; border-radius: 3px; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -45,70 +53,72 @@
 
     <div class="query-box">
         <strong>Input Query:</strong> {{ query }}<br>
-        <strong>Search Status:</strong> {{ "Active" if search_used else "Disabled (--no-search)" }}
+        <strong>Search Status:</strong> {{ "Active" if search_used else "Disabled (General Knowledge)" }}
     </div>
 
     {% if analysis %}
-        {# ----------------- CORE ANALYSIS RENDERING LOGIC ----------------- #}
         {% set lines = analysis.split('\n') %}
         {% set current_section = '' %}
-
+        
+        {# Loop through every single line of the agent's raw output #}
         {% for line in lines %}
             {% set trimmed_line = line.strip() %}
-
-            {# --- SECTION HEADERS --- #}
-            {% if trimmed_line.startswith('1) Executive Summary') %}
+            {% set clean_line = trimmed_line | replace('*', '') %}
+            
+            {# --- SECTION HEADER DETECTION (Most Robust Part) --- #}
+            {% if trimmed_line.startswith('1) **Executive Summary') %}
                 {% set current_section = 'summary' %}
             {% elif trimmed_line.startswith('2) Key Facts') %}
+                {% set current_section = 'keyfacts' %}
                 <h2>Key Facts</h2>
                 <div class="key-facts"><ul>
-                {% set current_section = 'keyfacts' %}
             {% elif trimmed_line.startswith('3) SWOT') %}
-                </ul></div> <h2>SWOT Analysis</h2>
-                <div class="strategic-analysis swot-grid">
                 {% set current_section = 'swot' %}
+                </ul></div> <h2>SWOT Analysis</h2>
+                <div class="swot-details">
             {% elif trimmed_line.startswith('4) Top') %}
-                </div> <h2>Strategic Recommendations</h2>
-                <div class="strategic-analysis rec-list">
                 {% set current_section = 'recommendations' %}
+                <h2>Strategic Recommendations</h2>
+                <div class="rec-list">
             {% elif trimmed_line.startswith('5) Sources') %}
+                {% set current_section = 'sources' %}
                 </div> <h2>Sources</h2>
                 <div class="sources"><ol>
-                {% set current_section = 'sources' %}
 
-            {# --- SECTION CONTENT RENDERING --- #}
+            {# --- CONTENT RENDERING LOGIC --- #}
             {% else %}
                 {% if current_section == 'summary' and trimmed_line %}
-                    <div class="exec-summary">{{ trimmed_line }}</div>
+                    {# This handles the one or two lines following the header #}
+                    <div class="exec-summary">{{ trimmed_line | safe }}</div>
                 {% elif current_section == 'keyfacts' and trimmed_line.startswith('*') %}
-                    <li>{{ trimmed_line | replace('*', "") | safe }}</li>
+                    <li>{{ clean_line | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
                 {% elif current_section == 'swot' and trimmed_line %}
-                    {# SWOT parsing for headers and content #}
-                    {% if trimmed_line.endswith(':') %}
-                        <div class="swot-section"><h3>{{ trimmed_line }}</h3><ul>
+                    {# Looks for bold/italics markers to distinguish S/W/O/T headers #}
+                    {% if '**' in trimmed_line or '*' in trimmed_line %} 
+                        {% if loop.index > 1 and trimmed_line.startswith('*') %}</ul></div>{% endif %}
+                        <div class="swot-section"><h3>{{ trimmed_line | replace('*', '') | replace(':', '') | safe }}</h3><ul>
                     {% elif trimmed_line.startswith('*') %}
-                        <li>{{ trimmed_line | replace('*', "") | safe }}</li>
+                        <li>{{ clean_line | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
                     {% endif %}
-                    {# Close the inner ul/div when a new section starts or we hit the next block #}
-                    {% if trimmed_line.endswith(':') and not loop.first %}</ul></div>{% endif %}
-                {% elif current_section == 'recommendations' and trimmed_line.endswith(':') %}
-                    {# Recommendation header - e.g., Recommendation 1: #}
-                    <div class="recommendation-section rec-item"><strong>{{ trimmed_line }}</strong><ul>
-                {% elif current_section == 'recommendations' and trimmed_line.startswith('*') %}
-                    {# Recommendation sub-bullets #}
-                    <li>{{ trimmed_line | replace('*', "") | safe }}</li>
+                {% elif current_section == 'recommendations' and trimmed_line %}
+                    {# Detects Recommendation header and sub-bullets based on keywords #}
+                    {% if trimmed_line.startswith('* Recommendation:') %}
+                        {% if loop.index > 1 %}</div>{% endif %}
+                        <div class="rec-item"><strong>{{ trimmed_line | replace('* Recommendation:', 'Recommendation:') | safe }}</strong><ul>
+                    {% elif trimmed_line.startswith('* Rationale:') or trimmed_line.startswith('* Immediate Next Step:') %}
+                        <li>{{ trimmed_line | replace('*', '') | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
+                    {% endif %}
                 {% elif current_section == 'sources' and trimmed_line %}
                     <li>{{ trimmed_line | safe }}</li>
                 {% endif %}
             {% endif %}
         {% endfor %}
-        {# Ensure final sections are closed gracefully #}
-        {% if current_section == 'swot' %}</ul></div>{% endif %}
-        {% if current_section == 'recommendations' %}</ul></div>{% endif %}
+        
+        {# Final Closing Tags for the last section #}
         {% if current_section == 'sources' %}</ol></div>{% endif %}
 
     {% else %}
-        <p>Analysis failed or returned no text. Check the Render logs for errors.</p>
+        <p>Analysis failed or returned no text. Please check the Render logs for an API error.</p>
     {% endif %}
 </body>
 </html>
