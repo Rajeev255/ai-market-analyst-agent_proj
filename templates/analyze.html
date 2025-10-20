@@ -6,44 +6,87 @@
     <title>Stratosphere Market Analysis Report</title>
     <style>
         /* BASE STYLES */
-        body { font-family: 'Arial', sans-serif; max-width: 900px; margin: 40px auto; line-height: 1.6; color: #333; background-color: #fcfcfc; }
-        h1 { color: #1a1a1a; border-bottom: 3px solid #2980b9; padding-bottom: 8px; margin-bottom: 30px; font-size: 24px; }
-        h2 { color: #2980b9; margin-top: 30px; font-size: 20px; }
-        h3 { color: #34495e; font-size: 16px; margin-top: 15px; margin-bottom: 5px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            max-width: 900px; 
+            margin: 40px auto; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #fcfcfc; 
+            font-size: 16px; /* INCREASED BASE FONT SIZE */
+        }
+        h1 { 
+            color: #1a1a1a; 
+            border-bottom: 3px solid #2980b9; 
+            padding-bottom: 8px; 
+            margin-bottom: 30px; 
+            font-size: 28px; /* INCREASED HEADER SIZE */
+        }
+        h2 { 
+            color: #2980b9; 
+            margin-top: 35px; /* Added spacing */
+            font-size: 22px; /* INCREASED SUB-HEADER SIZE */
+            border-bottom: 1px solid #eee; /* Light separator */
+            padding-bottom: 5px;
+        }
+        h3 { 
+            color: #34495e; 
+            font-size: 18px; /* INCREASED H3 SIZE */
+            margin-top: 15px; 
+            margin-bottom: 5px; 
+            padding-bottom: 5px; 
+            font-weight: bold;
+        }
 
         /* INPUT BOX */
-        .query-box { background: #eef4f9; padding: 15px; border-radius: 6px; margin-bottom: 30px; border-left: 5px solid #3498db; font-size: 14px; }
+        .query-box { 
+            background: #eef4f9; 
+            padding: 15px; 
+            border-radius: 6px; 
+            margin-bottom: 30px; 
+            border-left: 5px solid #3498db; 
+            font-size: 15px; /* Slightly smaller for info box */
+        }
         
         /* EXECUTIVE SUMMARY */
         .exec-summary { 
             background: #e6fff1; 
-            color: #006400;
+            color: #006400; 
             padding: 20px; 
             border-radius: 6px; 
             margin-bottom: 30px; 
-            font-size: 16px; 
+            font-size: 18px; /* Prominent size for summary */
             font-weight: bold; 
             line-height: 1.5;
             border: 1px solid #d4edda;
         }
 
-        /* TEXT OUTPUT CONTAINER (ROBUST) */
-        .analysis-output { 
-            background: #f2f2f2; 
-            padding: 20px; 
-            border-radius: 6px; 
-            white-space: pre-wrap; /* Maintains line breaks from the agent's output */
-            text-align: left;
-            margin-top: 20px;
+        /* LISTS */
+        .key-facts ul, .sources ol, .swot-details ul, .rec-list ul { 
+            list-style-type: disc; 
+            padding-left: 25px; 
+            margin-bottom: 15px; 
+            line-height: 1.5;
         }
+        .sources ol { list-style-type: decimal; }
+        .swot-details, .rec-list { margin-bottom: 40px; }
+        
+        /* RECOMMENDATION SPECIFIC STYLING */
+        .rec-item { 
+            border: 1px solid #f39c12; 
+            border-radius: 6px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            background-color: #fff9ed; 
+        }
+        .rec-item strong { display: block; color: #e67e22; margin-bottom: 5px; }
 
-        /* KEYWORD STYLING for the console output look */
-        .analysis-output code { 
-            display: block; 
-            font-family: monospace; 
-            line-height: 1.2;
-            padding: 10px 0;
-            white-space: pre-wrap;
+        /* KEYWORD STYLING */
+        .ungrounded { background-color: #ffe0e0; color: #cc0000; padding: 2px 4px; border-radius: 3px; font-weight: normal; font-size: 14px; }
+        
+        /* HIDDEN DEBUG BLOCK REMOVAL */
+        .analysis-output { /* Reusing the class but removing the monospace look */
+            white-space: pre-wrap; 
         }
     </style>
 </head>
@@ -56,15 +99,73 @@
     </div>
 
     {% if analysis %}
+        {% set lines = analysis.split('\n') %}
+        {% set current_section = '' %}
         
-        {# Display the entire cleaned analysis string inside a safe, pre-formatted code block #}
-        {# The 'safe' filter is CRITICAL: it prevents Jinja from escaping HTML entities like <, >, 
-           but since we stripped ** it should now render without breaking the page layout. #}
-        <div class="analysis-output">
-            <h2>Raw Agent Analysis (Structured)</h2>
-            <code>{{ analysis | safe }}</code>
-        </div>
+        {# Loop through every single line of the agent's raw output #}
+        {% for line in lines %}
+            {% set trimmed_line = line.strip() %}
+            {% set clean_line = trimmed_line | replace('*', '') %}
+            
+            {# --- SECTION HEADER DETECTION (Robust Logic) --- #}
+            {% if trimmed_line.startswith('1) Executive Summary') %}
+                {% set current_section = 'summary' %}
+            {% elif trimmed_line.startswith('2) Key Facts') %}
+                {% if current_section == 'summary' %}</div>{% endif %}
+                {% set current_section = 'keyfacts' %}
+                <h2>Key Facts</h2>
+                <div class="key-facts"><ul>
+            {% elif trimmed_line.startswith('3) SWOT') %}
+                {% if current_section == 'keyfacts' %}</ul></div>{% endif %}
+                {% set current_section = 'swot' %}
+                <h2>SWOT Analysis</h2>
+                <div class="swot-details">
+            {% elif trimmed_line.startswith('4) Top') %}
+                {% set current_section = 'recommendations' %}
+                </div>
+                <h2>Strategic Recommendations</h2>
+                <div class="rec-list">
+            {% elif trimmed_line.startswith('5) Sources') %}
+                {% set current_section = 'sources' %}
+                </div>
+                <h2>Sources</h2>
+                <div class="sources"><ol>
+
+            {# --- CONTENT RENDERING LOGIC --- #}
+            {% else %}
+                {% if current_section == 'summary' and trimmed_line %}
+                    {# This handles the 1-3 lines following the header #}
+                    <div class="exec-summary">{{ trimmed_line | safe }}</div>
+                {% elif current_section == 'keyfacts' and trimmed_line.startswith('—') %}
+                    {# Assuming the pre-clean removes '*', and we use a simple dash for bullets #}
+                    <li>{{ trimmed_line | replace('—', "") | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
+                {% elif current_section == 'swot' and trimmed_line %}
+                    {# Looks for colon to distinguish S/W/O/T headers #}
+                    {% if ':' in trimmed_line %}
+                        {% if loop.index > 1 and not lines[loop.index - 2].strip().endswith(':') and not lines[loop.index - 2].strip() == '' %}</ul>{% endif %}
+                        <h3>{{ trimmed_line | replace(':', '') | safe }}</h3><ul>
+                    {% elif trimmed_line.startswith('—') %}
+                        <li>{{ trimmed_line | replace('—', "") | replace('[UNGROUNDED]', '<span class="ungrounded">[UNGROUNDED]</span>') | safe }}</li>
+                    {% endif %}
+                {% elif current_section == 'recommendations' and trimmed_line %}
+                    {# Detects Recommendation header and sub-bullets based on keywords #}
+                    {% if trimmed_line.startswith('Recommendation:') %}
+                        {% if loop.index > 1 %}</div>{% endif %}
+                        <div class="rec-item"><strong>{{ trimmed_line | safe }}</strong><ul>
+                    {% elif trimmed_line.startswith('Rationale:') or trimmed_line.startswith('Immediate Next Step:') %}
+                        <li>{{ trimmed_line | safe }}</li>
+                    {% endif %}
+                {% elif current_section == 'sources' and trimmed_line %}
+                    <li>{{ trimmed_line | safe }}</li>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
         
+        {# Final Closing Tags for the last section #}
+        {% if current_section == 'swot' %}</ul></div>{% endif %}
+        {% if current_section == 'recommendations' %}</div>{% endif %}
+        {% if current_section == 'sources' %}</ol></div>{% endif %}
+
     {% else %}
         <p>Analysis failed or returned no content. Please check the Render logs for API errors.</p>
     {% endif %}
